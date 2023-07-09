@@ -70,7 +70,7 @@ function relu(x)
 end
 
 function relu′(x)
-    x .> 0
+    Float32.(x .> 0)
 end
 
 layers::Vector{Tuple{Int, Int, Function, Function}} = [(28*28, 128, relu, relu′), (128, 10, relu, relu′)]

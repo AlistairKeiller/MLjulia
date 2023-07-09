@@ -1,4 +1,4 @@
-using MLDatasets
+using MLDatasets, Random
 
 mutable struct Model
     weights::Vector{Matrix{Float32}}
@@ -18,37 +18,49 @@ function error(model::Model, in::Vector{Float32}, out::Vector{Float32})
     sum((in-out).^2)
 end
 
-function train(model::Model, train_data, learning_rate, epochs)
+function train(model::Model, train_data, test_data, batch_size, learning_rate, epochs)
     for epoch in 1:epochs
-        println("Starting epoch $epoch")
         println("error: ", sum(error(model, in, out) for (in, out) ∈ test_data)/length(test_data))
-        for (x, y) in train_data
-            # Forward pass
-            pre_activations = []
-            activations = [x]
-            for (w, b, a) in zip(model.weights, model.biases, model.activations)
-                push!(pre_activations, w * activations[end] + b)
-                push!(activations, a(pre_activations[end]))
+        
+        # Shuffle the training data at the beginning of each epoch
+        Random.shuffle!(train_data)
+        
+        # Split the training data into batches
+        for i in 1:batch_size:length(train_data)
+            batch = train_data[i:min(i+batch_size-1, end)]
+            
+            # Initialize gradients for weights and biases
+            ∇w = [zeros(size(w)) for w in model.weights]
+            ∇b = [zeros(size(b)) for b in model.biases]
+            
+            for (x, y) in batch
+                # Forward pass
+                pre_activations = []
+                activations = [x]
+                for (w, b, a) in zip(model.weights, model.biases, model.activations)
+                    push!(pre_activations, w * activations[end] + b)
+                    push!(activations, a(pre_activations[end]))
+                end
+
+                # Backward pass
+                δ = (activations[end] - y) .* model.activations′[end](pre_activations[end])
+                for l in length(model.weights):-1:2
+                    ∇b[l] += δ
+                    ∇w[l] += δ * activations[l]'
+                    δ = (model.weights[l]' * δ) .* model.activations′[l](pre_activations[l-1])
+                end
+
+                # Handle the first layer separately
+                l = 1
+                ∇b[l] += δ
+                ∇w[l] += δ * activations[l]'
             end
-
-            # Backward pass
-            δ = (activations[end] - y) .* model.activations′[end](pre_activations[end])
-            for l in length(model.weights):-1:2
-                ∇b = δ
-                ∇w = δ * activations[l]'
-                δ = (model.weights[l]' * δ) .* model.activations′[l](pre_activations[l-1])
-
-                # Update weights and biases
-                model.weights[l] -= learning_rate * ∇w
-                model.biases[l] -= learning_rate * ∇b
+            
+            # Update weights and biases
+            for l in 1:length(model.weights)
+                model.weights[l] -= learning_rate * ∇w[l] / length(batch)
+                model.biases[l] -= learning_rate * ∇b[l] / length(batch)
             end
-
-            # Handle the first layer separately
-            l = 1
-            ∇b = δ
-            ∇w = δ * activations[l]'
-            model.weights[l] -= learning_rate * ∇w
-            model.biases[l] -= learning_rate * ∇b
         end
     end
 end
@@ -65,7 +77,8 @@ layers::Vector{Tuple{Int, Int, Function, Function}} = [(28*28, 128, relu, relu�
 model = Model(layers)
 train_data = [(vec(in), [Float32(i == out) for i ∈ 0:9]) for (in, out) ∈ MNIST(:train)]
 test_data = [(vec(in), [Float32(i == out) for i ∈ 0:9]) for (in, out) ∈ MNIST(:test)]
+batch_size = 256
 learning_rate = Float32(1e-3)
 epochs = 50
 
-train(model, train_data, learning_rate, 50)
+train(model, train_data, test_data, batch_size, learning_rate, 50)

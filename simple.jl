@@ -18,9 +18,8 @@ function error(model::Model, in::Vector{Float32}, out::Vector{Float32})
     sum((in-out).^2)
 end
 
-function train(model::Model, train_data, learning_rate, epochs)
-    for epoch in 1:epochs
-        println("Starting epoch $epoch")
+function train(model::Model, train_data, learning_rate)
+    while true
         println("error: ", sum(error(model, in, out) for (in, out) ∈ test_data)/length(test_data))
         for (x, y) in train_data
             # Forward pass
@@ -32,23 +31,18 @@ function train(model::Model, train_data, learning_rate, epochs)
             end
 
             # Backward pass
-            δ = (activations[end] - y) .* model.activations′[end](pre_activations[end])
-            for l in length(model.weights):-1:2
+            δ = 2*(activations[end] - y) .* model.activations′[end](pre_activations[end])
+            for l in length(model.weights):-1:1
                 ∇b = δ
                 ∇w = δ * activations[l]'
-                δ = (model.weights[l]' * δ) .* model.activations′[l](pre_activations[l-1])
+                if l != 1
+                    δ = (model.weights[l]' * δ) .* model.activations′[l](pre_activations[l-1])
+                end
 
                 # Update weights and biases
                 model.weights[l] -= learning_rate * ∇w
                 model.biases[l] -= learning_rate * ∇b
             end
-
-            # Handle the first layer separately
-            l = 1
-            ∇b = δ
-            ∇w = δ * activations[l]'
-            model.weights[l] -= learning_rate * ∇w
-            model.biases[l] -= learning_rate * ∇b
         end
     end
 end
@@ -66,6 +60,5 @@ model = Model(layers)
 train_data = [(vec(in), [Float32(i == out) for i ∈ 0:9]) for (in, out) ∈ MNIST(:train)]
 test_data = [(vec(in), [Float32(i == out) for i ∈ 0:9]) for (in, out) ∈ MNIST(:test)]
 learning_rate = Float32(1e-3)
-epochs = 50
 
-train(model, train_data, learning_rate, 50)
+train(model, train_data, learning_rate)

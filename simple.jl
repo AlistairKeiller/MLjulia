@@ -44,8 +44,9 @@ function train(model::Model, train_data, learning_rate, epochs)
             end
 
             # Handle the first layer separately
+            l = 1
             ∇b = δ
-            ∇w = δ * activations[1]'
+            ∇w = δ * activations[l]'
             model.weights[l] -= learning_rate * ∇w
             model.biases[l] -= learning_rate * ∇b
         end

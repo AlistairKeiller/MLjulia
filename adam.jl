@@ -18,8 +18,16 @@ function error(model::Model, in::Vector{Float32}, out::Vector{Float32})
     sum((in - out) .^ 2)
 end
 
-function train(model::Model, train_data, learning_rate)
+function train(model::Model, train_data, learning_rate, β1=0.9, β2=0.999, ϵ=1e-8)
+    # Initialize first and second moment estimates for weights and biases
+    m_w = [zeros(size(w)) for w in model.weights]
+    v_w = [zeros(size(w)) for w in model.weights]
+    m_b = [zeros(size(b)) for b in model.biases]
+    v_b = [zeros(size(b)) for b in model.biases]
+    t = 0
+
     while true
+        t += 1
         println("error: ", sum(error(model, in, out) for (in, out) ∈ test_data) / length(test_data))
         for (x, y) in train_data
             # Forward pass
@@ -40,8 +48,18 @@ function train(model::Model, train_data, learning_rate)
                 end
 
                 # Update weights and biases
-                model.weights[l] -= learning_rate * ∇w
-                model.biases[l] -= learning_rate * ∇b
+                m_w[l] = β1 * m_w[l] + (1 - β1) * ∇w
+                v_w[l] = β2 * v_w[l] + (1 - β2) * ∇w .^ 2
+                m_hat_w = m_w[l] / (1 - β1^t)
+                v_hat_w = v_w[l] / (1 - β2^t)
+
+                m_b[l] = β1 * m_b[l] + (1 - β1) * ∇b
+                v_b[l] = β2 * v_b[l] + (1 - β2) * ∇b .^ 2
+                m_hat_b = m_b[l] / (1 - β1^t)
+                v_hat_b = v_b[l] / (1 - β2^t)
+
+                model.weights[l] -= learning_rate * m_hat_w ./ (sqrt.(v_hat_w) .+ ϵ)
+                model.biases[l] -= learning_rate * m_hat_b ./ (sqrt.(v_hat_b) .+ ϵ)
             end
         end
     end

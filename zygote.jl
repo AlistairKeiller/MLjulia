@@ -7,7 +7,7 @@ mutable struct Model
 end
 
 function Model(layers::Vector{Tuple{Int, Int, Function}})
-    Model([(2*rand(out, in).-1)/sqrt(in) for (in, out, a) ∈ layers], [(2*rand(out).-1)/sqrt(in) for (in, out, a) in layers], [a for (in, out, a) in layers])
+    Model([(2*rand(out, in).-1)/sqrt(in) for (in, out, a) ∈ layers], [(2*rand(out).-1)/sqrt(out) for (in, out, a) in layers], [a for (in, out, a) in layers])
 end
 
 function error(model::Model, in::Vector{Float32}, out::Vector{Float32})
@@ -34,11 +34,8 @@ function relu(x)
     max.(x,0)
 end
 
-function softmax(x)
-    exp.(x)/sum(exp.(x))
-end
-
-model = Model([(28*28, 128, relu), (128, 10, softmax)])
+layers::Vector{Tuple{Int, Int, Function}} = [(28*28, 128, relu), (128, 10, relu)]
+model = Model(layers)
 train_data = [(vec(in), [Float32(i == out) for i ∈ 0:9]) for (in, out) ∈ MNIST(:train)]
 test_data = [(vec(in), [Float32(i == out) for i ∈ 0:9]) for (in, out) ∈ MNIST(:test)]
 learning_rate = Float32(1e-3)

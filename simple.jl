@@ -8,7 +8,7 @@ mutable struct Model
 end
 
 function Model(layers::Vector{Tuple{Int, Int, Function, Function}})
-    Model([(2*rand(out, in).-1)/sqrt(in) for (in, out, a, a′) ∈ layers], [(2*rand(out).-1)/sqrt(out) for (in, out, a, a′) in layers], [a for (in, out, a, a′) in layers], [a′ for (in, out, a, a′) in layers])
+    Model([(2*rand(out, in).-1)/sqrt(in) for (in, out, a, a′) ∈ layers], [(2*rand(out).-1)/sqrt(in) for (in, out, a, a′) in layers], [a for (in, out, a, a′) in layers], [a′ for (in, out, a, a′) in layers])
 end
 
 function error(model::Model, in::Vector{Float32}, out::Vector{Float32})
